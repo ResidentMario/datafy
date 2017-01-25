@@ -1,1 +1,1 @@
-from datafy import get
+from .datafy import get

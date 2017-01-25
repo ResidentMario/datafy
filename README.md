@@ -21,3 +21,5 @@ It handles ZIP files as well:
 >>> get("https://data.cityofnewyork.us/download/ft4n-yqee/application%2Fzip")
 <<< [(<pandas DataFrame object>, "csv"), (<json object>, "json"), ...]
 ```
+
+`pip install git+git://github.com/ResidentMario/datafy` to install.
