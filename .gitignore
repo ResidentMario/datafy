@@ -1,3 +1,5 @@
 .idea/
 datafy/__pycache__
 tests/__pycache__
+dist/
+datafy.egg-info/
