@@ -20,3 +20,10 @@ class TestGet(unittest.TestCase):
     def testShapefile(self):
         ret = datafy.get("https://data.cityofnewyork.us/api/geospatial/arq3-7z49?method=export&format=Shapefile")
         assert len(list(filter(lambda d: d[2] == "shp", ret))) > 0
+
+    def testZippedExcelFiles(self):
+        # Plus a Word document.
+        docs = datafy.get("https://data.cityofnewyork.us/download/gua4-p9wg/application%2Fzip")
+        filetypes = [t[2] for t in docs]
+        assert len(list(filter(lambda f: f == 'xlsx', filetypes))) == 7
+        assert len(list(filter(lambda f: f == 'docx', filetypes))) == 1

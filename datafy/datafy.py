@@ -8,6 +8,7 @@ import os
 import random
 import shutil
 from requests_file import FileAdapter
+import magic
 
 
 mime_map = {
@@ -28,7 +29,7 @@ requests_session = requests.Session()
 requests_session.mount("file://", FileAdapter())
 
 
-def get(uri, sizeout=1000, type=None, encoding=None):
+def get(uri, sizeout=1000, type=None):
 
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
     if "file://" not in uri:
@@ -43,46 +44,37 @@ def get(uri, sizeout=1000, type=None, encoding=None):
     # Then send a GET request.
     r = requests_session.get(uri, timeout=7)
 
-    # Get the content type and encoding from the header. e.g. "text/csv; encoding=utf-8" => (csv, utf-8)
-    # Note that file-magic and python-magic modules exist for this, but are UNIX dependent because they rely on the
-    # native libmagic library. Getting that running on Windows would require a lot of effort. For now, let's see if
-    # we can maintain portability. That may ultimately be a mistake.
-    #
-    # All of the vendors that have to ascertain MIME types (including python-magic) uses a variety of lists to do it,
-    # backed up by inspection heuristics for when the hard-coded lists fail.
-    #
-    # We only want to accept a handful of MIME types (http://www.iana.org/assignments/media-types/media-types.xhtml)
-    # from the full list, and we assume that the open data portals hosting these services are competent enough to
-    # send their data with the correct content types. I built this into the list above this method signature.
-    #
-    # If we absolutely must use an oracle, we can drop that in here later.
+    # If a type hint is passed from above, use that.
     if type:
         type_hint = type
-        encoding_hint = encoding
-    else:
-        split = r.headers['content-type'].split()
 
-        # First try our guess.
+    # If no type hint is provided we have to guess the file type ourselves. This is a two-step process.
+    else:
+
+        # First, we check the result's mimetype against a map of known mimetypes (`mime_map`, above) in order to catch
+        # obvious inputs. We can't account for every possible input, however, so this doesn't catch everything.
         try:
-            type_hint = mime_map[split[0]]
+            split = r.headers['content-type'].split()
+            type_hint = mime_map[split[0].replace(";", "")]
         except KeyError:
             type_hint = None
 
-        # Then try to use Python's built-in mimetypes module to classify.
+        # If we get an object type that we don't get using the procedure above, we'll use an oracle to try to get it.
+        # An oracle alone isn't enough, because it would e.g. report a CSV document as text/plain, which is unhelpful.
+        # This is why the step above is necessary. However, an oracle (the `magic` library in this case) always
+        # generates some kind of guess; the base case in the case of scrambled binary seems to be to guess `.bat`.
         if not type_hint:
             try:
-                type_hint = mimetypes.guess_extension(split[0].rstrip(";"))[1:]
+                mime = magic.from_buffer(r.content, mime=True)
+                type_hint = mimetypes.guess_extension(mime)[1:]
             except TypeError:
-                type_hint = None
+                pass
 
-        # Raise if neither method works.
+        # If we still don't have an answer, raise (note: I'm not sure this line will ever execute).
         if not type_hint:
-            raise IOError("Couldn't determine meaning of content-type {0} associated with the URI {1}".format(
-                type_hint, uri
-            ))
+            raise IOError("Couldn't determine meaning of the content-type associated with the URI {0}".format(uri))
 
-        # Get the encoding hint, if there is one.
-        encoding_hint = split[1].replace("charset=", "") if len(split) > 1 else None
+    # TODO: It may prove necessary to guess encoding information as well. If so, investigate using chardet.
 
     # If the URI contains a "file://" in front, we know that this piece of data was read out of an archival file format.
     # In that case, we need to pull in a filepath hint so that we can point to which specific file in the resource is
@@ -92,7 +84,7 @@ def get(uri, sizeout=1000, type=None, encoding=None):
 
     # Use the hints to load the data.
     if type_hint == "csv":
-        return [(pd.read_csv(io.BytesIO(r.content), encoding=encoding_hint), filepath_hint, type_hint)]
+        return [(pd.read_csv(io.BytesIO(r.content)), filepath_hint, type_hint)]
     elif type_hint == "geojson":
         data = gpd.GeoDataFrame(r.json())
         return [(data, filepath_hint, type_hint)]
@@ -106,18 +98,18 @@ def get(uri, sizeout=1000, type=None, encoding=None):
         return [(data, filepath_hint, type_hint)]
 
     elif type_hint == "xls":
-        data = pd.read_excel(io.BytesIO(r.content), encoding=encoding_hint)
+        data = pd.read_excel(io.BytesIO(r.content))
         return [(data, filepath_hint, type_hint)]
 
     elif type_hint == "zip":
         # In certain cases, it's possible to the contents of an archive virtually. This depends on the contents of the
         # file: shapefiles can't be read because they are split across multiple files, KML and KMZ files can't be read
         # because fiona doesn't support them. But most of the rest of things can be.
-        #
+
         # To keep the API simple, however, we're not going to do the three-way fork required to do this. Instead we're
         # going to take the performance hit of writing to disk in all cases (which is really trivial anyway compared to
         # the cost of downloading), and analyze that in-place.
-        #
+
         # This branch will then recursively call get as a subroutine, using the file driver to pick out the rest of the
         # files in the folder.
         z = zipfile.ZipFile(io.BytesIO(r.content))
