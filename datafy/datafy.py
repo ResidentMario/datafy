@@ -90,7 +90,6 @@ def get(uri, sizeout=1000, type=None, encoding=None):
     # with a ".".
     filepath_hint = uri.replace("file://", "") if "file://" in uri else "."
 
-
     # Use the hints to load the data.
     if type_hint == "csv":
         return [(pd.read_csv(io.BytesIO(r.content), encoding=encoding_hint), filepath_hint, type_hint)]
