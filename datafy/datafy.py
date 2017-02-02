@@ -85,6 +85,7 @@ def get(uri, sizeout=1000, type=None):
     # Use the hints to load the data.
     if type_hint == "csv":
         return [(pd.read_csv(io.BytesIO(r.content)), filepath_hint, type_hint)]
+
     elif type_hint == "geojson":
         data = gpd.GeoDataFrame(r.json())
         return [(data, filepath_hint, type_hint)]
@@ -97,7 +98,7 @@ def get(uri, sizeout=1000, type=None):
         data = r.json()
         return [(data, filepath_hint, type_hint)]
 
-    elif type_hint == "xls":
+    elif type_hint == "xls" or type_hint == "xlsx":
         data = pd.read_excel(io.BytesIO(r.content))
         return [(data, filepath_hint, type_hint)]
 

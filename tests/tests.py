@@ -27,3 +27,7 @@ class TestGet(unittest.TestCase):
         filetypes = [t[2] for t in docs]
         assert len(list(filter(lambda f: f == 'xlsx', filetypes))) == 7
         assert len(list(filter(lambda f: f == 'docx', filetypes))) == 1
+
+    def testXLSX(self):
+        _, _, type = datafy.get("https://data.cityofnewyork.us/download/vnwz-ihnf/application%2Fzip")
+        assert type == "xlsx"
