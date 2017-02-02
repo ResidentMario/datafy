@@ -138,4 +138,4 @@ def get(uri, sizeout=1000, type=None):
 
     else:
         # We ignore file formats we don't know how to deal with as well as shapefile support files handled elsewhere.
-        return [(None, filepath_hint, type_hint)]
+        return [(r.content, filepath_hint, type_hint)]
