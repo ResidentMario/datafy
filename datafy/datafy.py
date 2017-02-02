@@ -30,7 +30,7 @@ requests_session.mount("file://", FileAdapter())
 
 def get(uri, sizeout=1000, type=None, encoding=None):
 
-    # # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
+    # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
     if "file://" not in uri:
         try:
             # Note: requests uses case-insenitive header names for access purposes. Saves a headache.
@@ -67,12 +67,14 @@ def get(uri, sizeout=1000, type=None, encoding=None):
             type_hint = mime_map[split[0]]
         except KeyError:
             type_hint = None
+
         # Then try to use Python's built-in mimetypes module to classify.
         if not type_hint:
             try:
                 type_hint = mimetypes.guess_extension(split[0].rstrip(";"))[1:]
             except TypeError:
                 type_hint = None
+
         # Raise if neither method works.
         if not type_hint:
             raise IOError("Couldn't determine meaning of content-type {0} associated with the URI {1}".format(
@@ -82,22 +84,32 @@ def get(uri, sizeout=1000, type=None, encoding=None):
         # Get the encoding hint, if there is one.
         encoding_hint = split[1].replace("charset=", "") if len(split) > 1 else None
 
+    # If the URI contains a "file://" in front, we know that this piece of data was read out of an archival file format.
+    # In that case, we need to pull in a filepath hint so that we can point to which specific file in the resource is
+    # the dataset of interest. Otherwise, the entire resource is itself the dataset of interest, and we denote the path
+    # with a ".".
+    filepath_hint = uri.replace("file://", "") if "file://" in uri else "."
+
+
     # Use the hints to load the data.
     if type_hint == "csv":
-        return [(pd.read_csv(io.BytesIO(r.content), encoding=encoding_hint), type_hint)]
+        return [(pd.read_csv(io.BytesIO(r.content), encoding=encoding_hint), filepath_hint, type_hint)]
     elif type_hint == "geojson":
         data = gpd.GeoDataFrame(r.json())
-        return [(data, type_hint)]
+        return [(data, filepath_hint, type_hint)]
+
     # We assume that JSON data gets passed with a JSON content-type and GeoJSON with a GeoJSON content-type. This is
     # true of the Socrata open data portal, and *probably* true of other open data portal providers, but a rule that is
     # almost certainly broken by less well-behaved landing pages on the net. For those cases, use the type parameter
     # over-ride.
     elif type_hint == "json":
         data = r.json()
-        return [(data, type_hint)]
+        return [(data, filepath_hint, type_hint)]
+
     elif type_hint == "xls":
         data = pd.read_excel(io.BytesIO(r.content), encoding=encoding_hint)
-        return [(data, type_hint)]
+        return [(data, filepath_hint, type_hint)]
+
     elif type_hint == "zip":
         # In certain cases, it's possible to the contents of an archive virtually. This depends on the contents of the
         # file: shapefiles can't be read because they are split across multiple files, KML and KMZ files can't be read
@@ -116,18 +128,22 @@ def get(uri, sizeout=1000, type=None, encoding=None):
                 os.makedirs(temp_foldername)
                 break
         z.extractall(path=temp_foldername)
+
         # Recuse using the file driver to deal with local folders.
         ret = []
         for filename in z.namelist():
             type = filename.split(".")[-1]
             ret += get("file:///{0}/{1}".format(temp_foldername, filename), type=type)
+
         # Delete the folder before returning the data.
         shutil.rmtree(temp_foldername)
         return ret
+
     elif type_hint == "shp":
         # This will only happen on a file read, because shapefiles can't be a content-type on the web.
         data = gpd.read_file(uri.replace("file:///", ""))
-        return [(data, type_hint)]
+        return [(data, filepath_hint, type_hint)]
+
     else:
         # We ignore file formats we don't know how to deal with as well as shapefile support files handled elsewhere.
-        return [(None, type_hint)]
+        return [(None, filepath_hint, type_hint)]
