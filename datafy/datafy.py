@@ -68,7 +68,7 @@ def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), local
     FileSizeTooLarge along the way.
     """
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
-    if "file://" not in uri:
+    if "file://" not in uri and request_filesize:
         try:
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
             if sizeout and content_length > sizeout:
@@ -167,4 +167,4 @@ def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), local
         return ret
 
     else:
-        return [{'data': r, 'fp': filepath_hint, 'mime': mime, 'ext': ext}]
+        return [{'data': r, 'filepath': filepath_hint, 'mimetype': mime, 'extension': ext}]

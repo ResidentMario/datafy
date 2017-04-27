@@ -1,0 +1,8 @@
+name: datafy
+dependencies:
+  - requests
+  - pytest
+  - pip:
+    - requests_file
+    - python-magic
+    - requests_mock
