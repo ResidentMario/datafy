@@ -29,11 +29,18 @@ requests_session = requests.Session()
 requests_session.mount("file://", FileAdapter())
 
 
-def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=False):
+class FileTooLargeException(TypeError):
+    """Raise when the file is larger than the specified sizeout."""
+
+
+def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), localized=False):
     """
     Given the download URI for a resource, returns a list of (data, filepath_hint, type_hint) tuples corresponding with
     that resource's dataset contents. Note that in some cases None will substitute for `data` in the above, and that in
     some cases this parameter will size out and simply return None instead of anything at all.
+
+    This method could theoretically work with any file transfer protocol via drivers for the requests library. Right
+    now it only supports HTTP/HTTPS and local files, however.
 
     Parameters
     ----------
@@ -41,23 +48,31 @@ def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=Fals
         The URI corresponding with the result download link.
     sizeout: int
         Before sending a download request this method will first ask the server for the content-length header of the
-        download. If one is provided, and exceeds this parameter in size, this method will simply return None.
+        download. If one is provided, and exceeds this parameter in size (in number of bytes), this method will raise a
+        FileSizeTooLarge exception. This parameter will be ignored if the resource is a file.
+    request_filesize: bool
+        Whether or not to, when making the server request, to ask (via a HEAD request) for the size of the resource.
+        Well-behaved online clients ought to provide filesize information in the HEAD, but many do not. In those
+        cases setting this to False beforehand avoids those unproductive additional queries.
     type_hints: (str, str) tuple
-        Type hint for the dataset's type. Must be a (mimetype, extension) tuple.
+        Type hint for the dataset's type, in the form of a (mimetype, extension) tuple. If this information is
+        passed, the method will return this information in the output. If it is not passed, get will attempt to
+        determine this metadata itself.
     localized: bool
         Whether or not this file is a local file (e.g. a downloaded file that's sitting on your computer disk). This
-        flag should only be used when `get` calls itself `recursively`; it shouldn't be set by the user.
+        flag should only be used when `get` calls itself recursively; it shouldn't be set by the user!
 
     Returns
     -------
-    None or a [{'data': r, 'fp': filepath_hint, 'mime': mime, 'ext': ext}, ...] list.
+    A list of documents of the form [{'data': r, 'fp': filepath_hint, 'mime': mime, 'ext': ext}, ...]. May raise a
+    FileSizeTooLarge along the way.
     """
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
     if "file://" not in uri:
         try:
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
-            if content_length > sizeout:
-                return None
+            if sizeout and content_length > sizeout:
+                raise FileTooLargeException
 
         except (KeyError, TypeError):
             pass
@@ -75,8 +90,6 @@ def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=Fals
         # First, we check the result's mimetype against a map of known mimetypes (`mime_map`, above) in order to catch
         # obvious inputs. We can't account for every possible input, however, so this doesn't catch everything.
 
-        # Files lacking a mimetype will generally be sent as an application/octet-stream.
-        # import pdb; pdb.set_trace()
         try:
             split = r.headers['content-type'].split()
             mime = split[0].replace(";", "")
@@ -88,6 +101,8 @@ def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=Fals
             # unhelpful. This is why the step above is necessary. However, an oracle (the `magic` library in this case)
             # always generates some kind of guess; the base case in the case of scrambled binary seems to be to guess
             # `.bat`.
+            #
+            # Usually files transferred without an obvious mimetype do so as an application/octet-stream,
             mime = magic.from_buffer(r.content, mime=True)
 
             try:
@@ -132,22 +147,23 @@ def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=Fals
         # files in the folder.
         z = zipfile.ZipFile(io.BytesIO(r.content))
 
-        while True:
-            temp_foldername = str(random.randint(0, 1000000))  # minimize the chance of a collision
-            if not os.path.exists(temp_foldername):
-                os.makedirs(temp_foldername)
-                break
-        z.extractall(path=temp_foldername)
+        try:
+            while True:
+                temp_foldername = str(random.randint(0, 1000000))  # minimize the chance of a collision
+                if not os.path.exists(temp_foldername):
+                    os.makedirs(temp_foldername)
+                    break
+            z.extractall(path=temp_foldername)
 
-        # Recurse using the file driver to deal with local folders.
-        ret = []
-        for filename in [name for name in z.namelist() if not os.path.isdir(name)]:
-            ext = filename.split(".")[-1]
-            mime = magic.from_file('{0}/{1}'.format(temp_foldername, filename), mime=True)
-            ret += get("file:///{0}/{1}".format(temp_foldername, filename), type_hints=(mime, ext), localized=True)
-
-        # Delete the folder before returning the data.
-        shutil.rmtree(temp_foldername)
+            # Recurse using the file driver to deal with local folders.
+            ret = []
+            for filename in [name for name in z.namelist() if not os.path.isdir(name)]:
+                ext = filename.split(".")[-1]
+                mime = magic.from_file('{0}/{1}'.format(temp_foldername, filename), mime=True)
+                ret += get("file:///{0}/{1}".format(temp_foldername, filename), type_hints=(mime, ext), localized=True)
+        finally:
+            # Delete the folder before returning the data.
+            shutil.rmtree(temp_foldername)
         return ret
 
     else:
