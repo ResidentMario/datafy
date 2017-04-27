@@ -6,15 +6,18 @@ from datafy import datafy
 class TestGet(unittest.TestCase):
 
     def testCSV(self):
-        _, _, type = datafy.get("https://data.cityofnewyork.us/api/views/kku6-nxdu/rows.csv?accessType=DOWNLOAD")[0]
+        _, _, type = datafy.get(
+            "https://data.cityofnewyork.us/api/views/kku6-nxdu/rows.csv?accessType=DOWNLOAD")[0].values()
         assert type == "csv"
 
     def testGeoJSON(self):
-        _, _, type = datafy.get("https://data.cityofnewyork.us/api/geospatial/arq3-7z49?method=export&format=GeoJSON")[0]
+        _, _, type = datafy.get(
+            "https://data.cityofnewyork.us/api/geospatial/arq3-7z49?method=export&format=GeoJSON")[0].values()
         assert type == "geojson"
 
     def testJSON(self):
-        _, _, type = datafy.get("https://data.cityofnewyork.us/api/views/kku6-nxdu/rows.json?accessType=DOWNLOAD")[0]
+        _, _, type = datafy.get(
+            "https://data.cityofnewyork.us/api/views/kku6-nxdu/rows.json?accessType=DOWNLOAD")[0].values()
         assert type == "json"
 
     def testShapefile(self):
@@ -29,5 +32,5 @@ class TestGet(unittest.TestCase):
         assert len(list(filter(lambda f: f == 'docx', filetypes))) == 1
 
     def testXLSX(self):
-        _, _, type = datafy.get("https://data.cityofnewyork.us/download/vnwz-ihnf/application%2Fzip")
+        _, _, type = datafy.get("https://data.cityofnewyork.us/download/vnwz-ihnf/application%2Fzip")[0].values()
         assert type == "xlsx"
