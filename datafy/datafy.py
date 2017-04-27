@@ -55,7 +55,6 @@ def get(uri, sizeout=100000000000000000, type_hints=(None, None), localized=Fals
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
     if "file://" not in uri:
         try:
-            # Note: requests uses case-insenitive header names for access purposes. Saves a headache.
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
             if content_length > sizeout:
                 return None

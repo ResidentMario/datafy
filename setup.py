@@ -2,7 +2,7 @@ from setuptools import setup
 setup(
     name = 'datafy',
     packages = ['datafy'], # this must be the same as the name above
-    install_requires=['pandas', 'geopandas', 'requests', 'requests-file'],
+    install_requires=['requests', 'requests-file', 'python-magic'],
     py_modules=['datafy'],
     version = '0.0.1',
     description = 'Read download URLs into datasets.',
