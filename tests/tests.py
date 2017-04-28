@@ -51,7 +51,7 @@ def test_core_files(uri, filename, type_hints):
         # Interdict network requests to retrieve data from the localized store instead.
         mock.get(uri, content=read_file(filename))
 
-        results = datafy.get(uri, request_filesize=False, type_hints=type_hints)
+        results = datafy.get(uri, type_hints=type_hints)
         assert ok(results)
         expected = [{'filepath': '.', 'mimetype': type_hints[0], 'extension': type_hints[1]}]
         assert match(results, expected)
@@ -151,7 +151,7 @@ def test_core_archival_formats(uri, filename, type_hints, expected):
         # Interdict local file requests (occurs when running on an achival file).
         mock.get(re.compile('^file:\/\/\/\d*\/[\s\S]*.[\s\S]*'), content=b'whatever')
 
-        results = datafy.get(uri, request_filesize=False, type_hints=type_hints)
+        results = datafy.get(uri, type_hints=type_hints)
         assert ok(results)
         assert match(results, expected)
 
@@ -168,12 +168,12 @@ class TestFilesize(unittest.TestCase):
             mock.head(uri, headers={'content-length': content_length})
 
             # Data is read in if the file is smaller than sizeout in bytes, per the HEAD request.
-            results = datafy.get(uri, request_filesize=True, sizeout=123457, type_hints=type_hints)
+            results = datafy.get(uri, sizeout=123457, type_hints=type_hints)
             assert results
 
             # Data is not read in if the file is larger than sizeout in bytes, per the HEAD request.
             with self.assertRaises(datafy.FileTooLargeException):
-                datafy.get(uri, request_filesize=True, sizeout=123455, type_hints=type_hints)
+                datafy.get(uri, sizeout=123455, type_hints=type_hints)
 
     def test_reading_in_data_when_no_filesize_is_returned_in_head(self):
         # Data is read in anyway if the HEAD request doesn't contain filesize information.
@@ -187,5 +187,5 @@ class TestFilesize(unittest.TestCase):
             # Interdict the HEAD request that gets sent beforehand.
             mock.head(uri, headers={})
 
-            results = datafy.get(uri, request_filesize=True, sizeout=123457, type_hints=type_hints)
+            results = datafy.get(uri, sizeout=123457, type_hints=type_hints)
             assert results

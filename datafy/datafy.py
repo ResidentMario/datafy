@@ -33,7 +33,7 @@ class FileTooLargeException(TypeError):
     """Raise when the file is larger than the specified sizeout."""
 
 
-def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), localized=False):
+def get(uri, sizeout=None, type_hints=(None, None), localized=False):
     """
     Given the download URI for a resource, returns a list of (data, filepath_hint, type_hint) tuples corresponding with
     that resource's dataset contents. Note that in some cases None will substitute for `data` in the above, and that in
@@ -50,10 +50,6 @@ def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), local
         Before sending a download request this method will first ask the server for the content-length header of the
         download. If one is provided, and exceeds this parameter in size (in number of bytes), this method will raise a
         FileSizeTooLarge exception. This parameter will be ignored if the resource is a file.
-    request_filesize: bool
-        Whether or not to, when making the server request, to ask (via a HEAD request) for the size of the resource.
-        Well-behaved online clients ought to provide filesize information in the HEAD, but many do not. In those
-        cases setting this to False beforehand avoids those unproductive additional queries.
     type_hints: (str, str) tuple
         Type hint for the dataset's type, in the form of a (mimetype, extension) tuple. If this information is
         passed, the method will return this information in the output. If it is not passed, get will attempt to
@@ -68,7 +64,7 @@ def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), local
     May raise a FileSizeTooLarge along the way. A requests Request object is returned in the "data" field.
     """
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
-    if "file://" not in uri and request_filesize and sizeout:
+    if "file://" not in uri and sizeout:
         try:
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
             print(content_length, sizeout)
