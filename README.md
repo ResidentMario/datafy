@@ -8,19 +8,28 @@ recursively reading out the contents of a `ZIP` file.
 ```
 >>> from datafy import get
 >>> get("file:///Desktop/myfile.csv")
-<<< TODO
+<<< [{'filepath': '.',
+      'mimetype': 'text/csv',
+      'extension': 'csv'}]
 ```
 
 As well as from the web:
 
 ```
 >>> get("https://data.cityofnewyork.us/api/geospatial/arq3-7z49?method=export&format=GeoJSON")
+<<< [{'filepath': '.',
+      'mimetype': 'text/json',
+      'extension': 'geojson'}]
 ```
 
 It handles ZIP files as well:
 
 ```
 >>> get("https://data.cityofnewyork.us/download/ft4n-yqee/application%2Fzip")
+<<< [{'filepath': 'data.shp',
+      'mimetype': 'octet/stream',
+      'extension': 'shp'},
+     {...}]
 ```
 
 ## Installation
