@@ -146,7 +146,6 @@ def test_core_files(uri, filename, type_hints):
 def test_core_archival_formats(uri, filename, type_hints, expected):
     """Test that the core method works with a variety of non-archival input filetypes."""
     with requests_mock.Mocker() as mock:
-
         # Interdict network requests to retrieve data from the localized store instead.
         mock.get(uri, content=read_file(filename))
         # Interdict local file requests (occurs when running on an achival file).
@@ -155,3 +154,38 @@ def test_core_archival_formats(uri, filename, type_hints, expected):
         results = datafy.get(uri, request_filesize=False, type_hints=type_hints)
         assert ok(results)
         assert match(results, expected)
+
+
+class TestFilesize(unittest.TestCase):
+    def test_reading_filesize_via_head(self):
+        with requests_mock.Mocker() as mock:
+            uri = 'mock://data.cityofnewyork.us/api/views/kku6-nxdu/rows.csv?accessType=DOWNLOAD'
+            type_hints = ('text/csv', 'csv')
+            content_length = str(123456)
+            # Interdict network requests to retrieve data from the localized store instead.
+            mock.get(uri, content=read_file('Demographic Statistics By Zip Code.csv'))
+            # Interdict the HEAD request that gets sent beforehand.
+            mock.head(uri, headers={'content-length': content_length})
+
+            # Data is read in if the file is smaller than sizeout in bytes, per the HEAD request.
+            results = datafy.get(uri, request_filesize=True, sizeout=123457, type_hints=type_hints)
+            assert results
+
+            # Data is not read in if the file is larger than sizeout in bytes, per the HEAD request.
+            with self.assertRaises(datafy.FileTooLargeException):
+                datafy.get(uri, request_filesize=True, sizeout=123455, type_hints=type_hints)
+
+    def test_reading_in_data_when_no_filesize_is_returned_in_head(self):
+        # Data is read in anyway if the HEAD request doesn't contain filesize information.
+
+        uri = 'mock://data.cityofnewyork.us/api/views/kku6-nxdu/rows.csv?accessType=DOWNLOAD'
+        type_hints = ('text/csv', 'csv')
+
+        with requests_mock.Mocker() as mock:
+            # Interdict network requests to retrieve data from the localized store instead.
+            mock.get(uri, content=read_file('Demographic Statistics By Zip Code.csv'))
+            # Interdict the HEAD request that gets sent beforehand.
+            mock.head(uri, headers={})
+
+            results = datafy.get(uri, request_filesize=True, sizeout=123457, type_hints=type_hints)
+            assert results

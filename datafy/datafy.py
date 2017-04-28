@@ -64,17 +64,18 @@ def get(uri, sizeout=None, request_filesize=True, type_hints=(None, None), local
 
     Returns
     -------
-    A list of documents of the form [{'data': r, 'fp': filepath_hint, 'mime': mime, 'ext': ext}, ...]. May raise a
-    FileSizeTooLarge along the way.
+    A list of documents of the form [{'data': r, 'filepath': filepath_hint, 'mimetype': mime, 'extension': ext}, ...].
+    May raise a FileSizeTooLarge along the way. A requests Request object is returned in the "data" field.
     """
     # First send a HEAD request and back out if sizeout is exceeded. Don't do this if the file is local.
-    if "file://" not in uri and request_filesize:
+    if "file://" not in uri and request_filesize and sizeout:
         try:
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
-            if sizeout and content_length > sizeout:
+            print(content_length, sizeout)
+            if content_length > sizeout:
                 raise FileTooLargeException
 
-        except (KeyError, TypeError):
+        except (KeyError):
             pass
 
     # Then send a GET request.
