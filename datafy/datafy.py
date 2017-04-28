@@ -67,11 +67,10 @@ def get(uri, sizeout=None, type_hints=(None, None), localized=False):
     if "file://" not in uri and sizeout:
         try:
             content_length = int(requests.head(uri, timeout=1).headers['content-length'])
-            print(content_length, sizeout)
             if content_length > sizeout:
                 raise FileTooLargeException
 
-        except (KeyError):
+        except KeyError:
             pass
 
     # Then send a GET request.
