@@ -141,6 +141,9 @@ def get(uri, sizeout=None, type_hints=(None, None), localized=False):
 
         # This branch will then recursively call get as a subroutine, using the file driver to pick out the rest of the
         # files in the folder.
+
+        # Important limitations: this does not handle ZIP files within ZIP files (yo dawg...). I also have not yet
+        # dealt with TAR files and the like. See this repository's issues for more on this.
         z = zipfile.ZipFile(io.BytesIO(r.content))
 
         try:
