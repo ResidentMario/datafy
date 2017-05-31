@@ -149,7 +149,7 @@ def test_core_archival_formats(uri, filename, type_hints, expected):
         # Interdict network requests to retrieve data from the localized store instead.
         mock.get(uri, content=read_file(filename))
         # Interdict local file requests (occurs when running on an achival file).
-        mock.get(re.compile('^file:\/\/\/\d*\/[\s\S]*.[\s\S]*'), content=b'whatever')
+        mock.get(re.compile('^file:\/\/\/[\s\S]*.[\s\S]*\d*\/[\s\S]*.[\s\S]*'), content=b'whatever')
 
         results = datafy.get(uri, type_hints=type_hints)
         assert ok(results)

@@ -159,11 +159,21 @@ def get(uri, sizeout=None, type_hints=(None, None), localized=False):
             for filename in [name for name in z.namelist() if not os.path.isdir(name)]:
                 ext = filename.split(".")[-1]
                 mime = magic.from_file('{0}/{1}'.format(temp_foldername, filename), mime=True)
-                ret += get("file:///{0}/{1}".format(temp_foldername, filename), type_hints=(mime, ext), localized=True)
+
+                # We need to build an absolute filepath and pass that for requests_file to catch.
+                rel_filepath = "{0}/{1}".format(temp_foldername, filename)
+                abs_filepath = os.path.abspath(rel_filepath)
+                ret += get("file://{0}".format(abs_filepath), type_hints=(mime, ext), localized=True)
         finally:
             # Delete the folder before returning the data.
             shutil.rmtree(temp_foldername)
         return ret
 
     else:
+        # If we are working with a local file, filepath_hint is an absolute filepath because that is what we needed
+        # to pass to the requests session. But we do not want to include this system-dependent information in the file
+        # paths we return. Therefore, we excise the absolute part out to return us to a relative path.
+        # TODO: Is there a better way of doing this?
+        if localized:
+            filepath_hint= filepath_hint[len(os.path.abspath(".")) + 2:]  # fencepost and exclude the prior slash
         return [{'data': r, 'filepath': filepath_hint, 'mimetype': mime, 'extension': ext}]
