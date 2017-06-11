@@ -109,10 +109,10 @@ def get(uri, sizeout=None, type_hints=(None, None), localized=False):
                 except TypeError:
                     # If we still don't have an answer, warn.
                     # This mime type will probably need to be added to our hard-coded list at the top of the file.
-                    raise RuntimeWarning(
-                        "Couldn't determine meaning of the {0} content-type associated with the URI {1}".format(mime,
-                                                                                                                uri)
-                    )
+                    import warnings
+                    warnings.warn("Couldn't determine meaning of the {0} content-type "
+                                  "associated with the URI {1}".format(mime, uri), RuntimeWarning)
+                    ext = None
 
     # TODO: It may prove necessary to guess encoding information as well. If so, investigate using chardet.
 
