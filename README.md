@@ -44,3 +44,8 @@ To hack on `datafy`, clone this library locally. Install its dependencies (`requ
 To execute the test suite, run `pytest tests.py` on the command line from the `/tests` folder.
 
 Pull requests welcome.
+
+## Limitations
+
+* Only handles archival files in the ZIP format, so no TAR files ecetera. ([#1](https://github.com/ResidentMario/datafy/issues/1)).
+* Does not handle recursively archived files ([#2](https://github.com/ResidentMario/datafy/issues/2)).
