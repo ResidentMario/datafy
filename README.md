@@ -1,4 +1,4 @@
-## datafy [![PyPi version](https://img.shields.io/pypi/v/datafy.svg)](https://pypi.python.org/pypi/pysocrata/) ![t](https://img.shields.io/badge/status-beta-yellow.svg)
+## datafy [![PyPi version](https://img.shields.io/pypi/v/datafy.svg)](https://pypi.python.org/pypi/datafy/) ![t](https://img.shields.io/badge/status-beta-yellow.svg)
 
 `datafy` is a tiny Python package that handles reading a list of files out of a number of common formats, including 
 recursively reading out the contents of a `ZIP` file.
