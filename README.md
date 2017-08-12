@@ -1,6 +1,6 @@
-## About
+## datafy [![PyPi version](https://img.shields.io/pypi/v/datafy.svg)](https://pypi.python.org/pypi/pysocrata/) ![t](https://img.shields.io/badge/status-beta-yellow.svg)
 
-`datafy` is a small Python package that handles reading a list of files out of a number of common formats, including 
+`datafy` is a tiny Python package that handles reading a list of files out of a number of common formats, including 
 recursively reading out the contents of a `ZIP` file.
 
 `datafy` can read data from local files:
@@ -32,10 +32,7 @@ It handles ZIP files as well:
      {...}]
 ```
 
-## Installation
-`pip install git+git://github.com/ResidentMario/datafy` to install. A PyPi release is still forthcoming.
-
-## Development
+### Development
 
 To hack on `datafy`, clone this library locally. Install its dependencies (`requests`, `requests_file`, 
 `python-magic`) and development dependencies (`pytest`, `requests_mock`) via `pip`. If you have `conda`, you can run 
@@ -45,7 +42,7 @@ To execute the test suite, run `pytest tests.py` on the command line from the `/
 
 Pull requests welcome.
 
-## Limitations
+### Limitations
 
 * Only handles archival files in the ZIP format, so no TAR files ecetera. ([#1](https://github.com/ResidentMario/datafy/issues/1)).
 * Does not handle recursively archived files ([#2](https://github.com/ResidentMario/datafy/issues/2)).
